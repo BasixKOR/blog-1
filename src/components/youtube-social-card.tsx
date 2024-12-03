@@ -37,7 +37,12 @@ export const YouTubeSocialCard = () => {
 const SubscribeButton = () => {
   const subscriberCount = use(getYouTubeSubscriberCount());
 
-  return <SubscribeButtonCore>Subscribe {subscriberCount}</SubscribeButtonCore>;
+  return (
+    <SubscribeButtonCore>
+      Subscribe
+      <span className="ml-1 font-medium text-[#ffffffcc]">{subscriberCount}</span>
+    </SubscribeButtonCore>
+  );
 };
 
 const SubscribeButtonCore = ({ children }: PropsWithChildren) => {
@@ -45,7 +50,7 @@ const SubscribeButtonCore = ({ children }: PropsWithChildren) => {
     <a
       href={`https://www.youtube.com/channel/${YouTubeChannelId}?sub_confirmation=1`}
       target="_blank"
-      className="rounded-full bg-red-600 px-4 py-1.5 text-sm font-medium text-white flex justify-center"
+      className="rounded-full bg-red-600 px-4 py-1.5 text-[12px] font-bold text-white inline-flex items-center"
     >
       {children}
     </a>
