@@ -1,10 +1,35 @@
-import puppeteer from 'puppeteer';
+import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer-core';
 
 export async function getLinkedInFollowers() {
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
+  let browser;
+  if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
+    // Vercel 환경
+    browser = await puppeteer.launch({
+      args: [
+        ...chromium.args,
+        '--hide-scrollbars',
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu'
+      ],
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: true,
+    });
+  } else {
+    // 로컬 환경
+    const puppeteerDefault = await import('puppeteer');
+    browser = await puppeteerDefault.default.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+  }
 
   try {
     const page = await browser.newPage();
@@ -14,7 +39,7 @@ export async function getLinkedInFollowers() {
     await page.setDefaultTimeout(60000);
     await page.setDefaultNavigationTimeout(60000);
 
-    const response = await page.goto(
+    await page.goto(
       'https://www.linkedin.com/posts/hajoeun_%EC%9A%B0%EB%A6%AC%EB%8A%94-%EB%AA%A8%EB%91%90-%EC%98%A8%EB%9D%BC%EC%9D%B8-%EC%86%8D-%EC%9E%90%EC%8B%A0%EB%A7%8C%EC%9D%98-%EA%B3%B5%EA%B0%84%EC%9D%84-%EA%B0%96%EA%B3%A0-%EC%9E%88%EC%8A%B5%EB%8B%88%EB%8B%A4-%EC%86%8C%EC%85%9C-%EB%AF%B8%EB%94%94%EC%96%B4-sns%EB%A1%9C-activity-7229438902950838274-mHLu',
       {
         waitUntil: 'domcontentloaded',
@@ -22,7 +47,7 @@ export async function getLinkedInFollowers() {
       }
     );
 
-    if (!response) {
+    if (!page) {
       throw new Error('페이지 로드 실패');
     }
 
