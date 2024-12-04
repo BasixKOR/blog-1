@@ -1,29 +1,38 @@
-import chromium from 'chrome-aws-lambda';
+import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 
 export async function getThreadsFollowers() {
   let browser;
   try {
-    const options = process.env.AWS_LAMBDA_FUNCTION_VERSION
-      ? {
-          args: chromium.args,
-          executablePath: await chromium.executablePath,
-          headless: chromium.headless,
-          defaultViewport: {
-            width: 1920,
-            height: 1080,
-          },
-        }
-      : {
-          args: ['--no-sandbox', '--disable-setuid-sandbox'],
-          headless: true,
-          defaultViewport: {
-            width: 1920,
-            height: 1080,
-          },
-        };
+    // Vercel 서버리스 환경인 경우
+    if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
+      await chromium.font(
+        'https://raw.githack.com/googlei18n/noto-emoji/master/fonts/NotoColorEmoji.ttf'
+      );
 
-    browser = await puppeteer.launch(options);
+      browser = await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: {
+          width: 1920,
+          height: 1080,
+        },
+        executablePath: await chromium.executablePath(),
+        headless: true,
+        ignoreHTTPSErrors: true,
+      });
+    } else {
+      // 로컬 환경인 경우
+      browser = await puppeteer.launch({
+        args: ['--no-sandbox'],
+        defaultViewport: {
+          width: 1920,
+          height: 1080,
+        },
+        executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+        headless: true,
+        ignoreHTTPSErrors: true,
+      });
+    }
 
     const page = await browser.newPage();
     await page.setViewport({ width: 1920, height: 1080 });

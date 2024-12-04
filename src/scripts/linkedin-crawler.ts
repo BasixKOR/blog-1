@@ -1,38 +1,44 @@
-import chromium from 'chrome-aws-lambda';
+import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 
 export async function getLinkedInFollowers() {
   let browser;
   try {
-    const options = process.env.AWS_LAMBDA_FUNCTION_VERSION
-      ? {
-          args: chromium.args,
-          executablePath: await chromium.executablePath,
-          headless: chromium.headless,
-          defaultViewport: {
-            width: 1920,
-            height: 1080,
-          },
-        }
-      : {
-          args: ['--no-sandbox', '--disable-setuid-sandbox'],
-          headless: true,
-          defaultViewport: {
-            width: 1920,
-            height: 1080,
-          },
-        };
+    // Vercel 서버리스 환경인 경우
+    if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
+      await chromium.font(
+        'https://raw.githack.com/googlei18n/noto-emoji/master/fonts/NotoColorEmoji.ttf'
+      );
 
-    browser = await puppeteer.launch(options);
+      browser = await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: {
+          width: 1920,
+          height: 1080,
+        },
+        executablePath: await chromium.executablePath(),
+        headless: true,
+        ignoreHTTPSErrors: true,
+      });
+    } else {
+      // 로컬 환경인 경우
+      browser = await puppeteer.launch({
+        args: ['--no-sandbox'],
+        defaultViewport: {
+          width: 1920,
+          height: 1080,
+        },
+        executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+        headless: true,
+        ignoreHTTPSErrors: true,
+      });
+    }
 
     const page = await browser.newPage();
     await page.setViewport({ width: 1920, height: 1080 });
     await page.setUserAgent(
       'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
     );
-
-    await page.setDefaultTimeout(60000);
-    await page.setDefaultNavigationTimeout(60000);
 
     await page.goto(
       'https://www.linkedin.com/posts/hajoeun_%EC%9A%B0%EB%A6%AC%EB%8A%94-%EB%AA%A8%EB%91%90-%EC%98%A8%EB%9D%BC%EC%9D%B8-%EC%86%8D-%EC%9E%90%EC%8B%A0%EB%A7%8C%EC%9D%98-%EA%B3%B5%EA%B0%84%EC%9D%84-%EA%B0%96%EA%B3%A0-%EC%9E%88%EC%8A%B5%EB%8B%88%EB%8B%A4-%EC%86%8C%EC%85%9C-%EB%AF%B8%EB%94%94%EC%96%B4-sns%EB%A1%9C-activity-7229438902950838274-mHLu',
@@ -41,10 +47,6 @@ export async function getLinkedInFollowers() {
         timeout: 60000,
       }
     );
-
-    if (!page) {
-      throw new Error('페이지 로드 실패');
-    }
 
     // 팔로워 수가 포함된 요소 대기
     await page.waitForSelector('.public-post-author-card__followers', { timeout: 30000 });
@@ -76,7 +78,7 @@ export async function getLinkedInFollowers() {
     // 쉼표 제거 후 숫자로 변환
     return parseInt(match[1].replace(/,/g, ''));
   } catch (error) {
-    console.error('Threads 크롤링 중 오류 발생:', error);
+    console.error('LinkedIn 크롤링 중 오류 발생:', error);
     throw error;
   } finally {
     if (!browser) return;
