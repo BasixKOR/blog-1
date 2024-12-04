@@ -1,20 +1,14 @@
-import chromium from '@sparticuz/chromium';
+import chromium from 'chrome-aws-lambda';
 import puppeteer from 'puppeteer-core';
 
 export async function getLinkedInFollowers() {
   let browser;
   if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
     // Vercel 환경
-    const executablePath = await chromium.executablePath()
-    console.log('Chrome path:', executablePath)
-    
     browser = await puppeteer.launch({
       args: chromium.args,
-      defaultViewport: {
-        width: 1920,
-        height: 1080,
-      },
-      executablePath,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath,
       headless: chromium.headless,
     });
   } else {
