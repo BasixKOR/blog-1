@@ -40,4 +40,4 @@ export default {
   Ref,
   FootNotes,
   FootNote,
-};
+} as const;

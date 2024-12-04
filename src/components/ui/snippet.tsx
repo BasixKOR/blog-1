@@ -1,4 +1,5 @@
 import { codeToHtml } from 'shiki';
+
 import { Caption } from './caption';
 
 export const Snippet = async ({ children, caption = null }) => {

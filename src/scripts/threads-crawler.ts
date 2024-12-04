@@ -3,27 +3,33 @@ import puppeteer from 'puppeteer-core';
 
 export async function getThreadsFollowers() {
   let browser;
-  if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
-    // Vercel 환경
-    browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath,
-      headless: chromium.headless,
-    });
-  } else {
-    // 로컬 환경
-    const puppeteerDefault = await import('puppeteer');
-    browser = await puppeteerDefault.default.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-  }
-
   try {
+    const options = process.env.AWS_LAMBDA_FUNCTION_VERSION
+      ? {
+          args: chromium.args,
+          executablePath: await chromium.executablePath,
+          headless: chromium.headless,
+          defaultViewport: {
+            width: 1920,
+            height: 1080,
+          },
+        }
+      : {
+          args: ['--no-sandbox', '--disable-setuid-sandbox'],
+          headless: true,
+          defaultViewport: {
+            width: 1920,
+            height: 1080,
+          },
+        };
+
+    browser = await puppeteer.launch(options);
+
     const page = await browser.newPage();
     await page.setViewport({ width: 1920, height: 1080 });
-    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36');
+    await page.setUserAgent(
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
+    );
 
     await page.goto('https://www.threads.net/@hajoeun_', {
       waitUntil: 'domcontentloaded',
@@ -40,7 +46,7 @@ export async function getThreadsFollowers() {
     await page.waitForFunction(
       () => {
         const spans = document.querySelectorAll('span[title]');
-        return Array.from(spans).some(span => /^[\d,]+$/.test(span.getAttribute('title') || ''));
+        return Array.from(spans).some((span) => /^[\d,]+$/.test(span.getAttribute('title') || ''));
       },
       { timeout: 30000 }
     );
@@ -48,7 +54,7 @@ export async function getThreadsFollowers() {
     const spans = await page.$$('span[title]');
 
     for (const span of spans) {
-      const title = await span.evaluate(el => el.getAttribute('title'));
+      const title = await span.evaluate((el) => el.getAttribute('title'));
       if (title && /^[\d,]+$/.test(title)) {
         return parseInt(title.replace(/,/g, ''));
       }

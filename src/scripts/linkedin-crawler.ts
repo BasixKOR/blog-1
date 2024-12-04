@@ -3,27 +3,33 @@ import puppeteer from 'puppeteer-core';
 
 export async function getLinkedInFollowers() {
   let browser;
-  if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
-    // Vercel 환경
-    browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath,
-      headless: chromium.headless,
-    });
-  } else {
-    // 로컬 환경
-    const puppeteerDefault = await import('puppeteer');
-    browser = await puppeteerDefault.default.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-  }
-
   try {
+    const options = process.env.AWS_LAMBDA_FUNCTION_VERSION
+      ? {
+          args: chromium.args,
+          executablePath: await chromium.executablePath,
+          headless: chromium.headless,
+          defaultViewport: {
+            width: 1920,
+            height: 1080,
+          },
+        }
+      : {
+          args: ['--no-sandbox', '--disable-setuid-sandbox'],
+          headless: true,
+          defaultViewport: {
+            width: 1920,
+            height: 1080,
+          },
+        };
+
+    browser = await puppeteer.launch(options);
+
     const page = await browser.newPage();
     await page.setViewport({ width: 1920, height: 1080 });
-    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36');
+    await page.setUserAgent(
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
+    );
 
     await page.setDefaultTimeout(60000);
     await page.setDefaultNavigationTimeout(60000);
@@ -53,7 +59,10 @@ export async function getLinkedInFollowers() {
     );
 
     // 팔로워 수 텍스트 추출
-    const followerText = await page.$eval('.public-post-author-card__followers', el => el.textContent);
+    const followerText = await page.$eval(
+      '.public-post-author-card__followers',
+      (el) => el.textContent
+    );
     if (!followerText) {
       throw new Error('팔로워 수를 찾을 수 없습니다.');
     }
