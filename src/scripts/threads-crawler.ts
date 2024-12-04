@@ -1,32 +1,20 @@
-import { chromium } from 'playwright';
+import puppeteer from 'puppeteer';
 
 export async function getThreadsFollowers() {
-  const browser = await chromium.launch({
+  const browser = await puppeteer.launch({
     headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
 
   try {
-    const context = await browser.newContext({
-      viewport: { width: 1920, height: 1080 },
-      deviceScaleFactor: 2,
-      userAgent:
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-      locale: 'ko-KR',
-      timezoneId: 'Asia/Seoul',
-    });
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1920, height: 1080 });
+    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36');
 
-    const page = await context.newPage();
-    page.setDefaultTimeout(60000);
-    page.setDefaultNavigationTimeout(60000);
-
-    const response = await page.goto('https://www.threads.net/@hajoeun_', {
+    await page.goto('https://www.threads.net/@hajoeun_', {
       waitUntil: 'domcontentloaded',
       timeout: 60000,
     });
-
-    if (!response) {
-      throw new Error('페이지 로드 실패');
-    }
 
     await Promise.race([
       page.waitForSelector('span[title]', { timeout: 30000 }),
@@ -34,12 +22,19 @@ export async function getThreadsFollowers() {
       page.waitForSelector('[role="main"]', { timeout: 30000 }),
     ]);
 
-    await page.waitForTimeout(2000);
+    // 실제 콘텐츠가 로드될 때까지 대기
+    await page.waitForFunction(
+      () => {
+        const spans = document.querySelectorAll('span[title]');
+        return Array.from(spans).some(span => /^[\d,]+$/.test(span.getAttribute('title') || ''));
+      },
+      { timeout: 30000 }
+    );
 
-    const spans = await page.locator('span[title]').all();
+    const spans = await page.$$('span[title]');
 
     for (const span of spans) {
-      const title = await span.getAttribute('title');
+      const title = await span.evaluate(el => el.getAttribute('title'));
       if (title && /^[\d,]+$/.test(title)) {
         return parseInt(title.replace(/,/g, ''));
       }

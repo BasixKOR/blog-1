@@ -1,23 +1,18 @@
-import { chromium } from 'playwright';
+import puppeteer from 'puppeteer';
 
 export async function getLinkedInFollowers() {
-  const browser = await chromium.launch({
+  const browser = await puppeteer.launch({
     headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
 
   try {
-    const context = await browser.newContext({
-      viewport: { width: 1920, height: 1080 },
-      deviceScaleFactor: 2,
-      userAgent:
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-      locale: 'ko-KR',
-      timezoneId: 'Asia/Seoul',
-    });
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1920, height: 1080 });
+    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36');
 
-    const page = await context.newPage();
-    page.setDefaultTimeout(60000);
-    page.setDefaultNavigationTimeout(60000);
+    await page.setDefaultTimeout(60000);
+    await page.setDefaultNavigationTimeout(60000);
 
     const response = await page.goto(
       'https://www.linkedin.com/posts/hajoeun_%EC%9A%B0%EB%A6%AC%EB%8A%94-%EB%AA%A8%EB%91%90-%EC%98%A8%EB%9D%BC%EC%9D%B8-%EC%86%8D-%EC%9E%90%EC%8B%A0%EB%A7%8C%EC%9D%98-%EA%B3%B5%EA%B0%84%EC%9D%84-%EA%B0%96%EA%B3%A0-%EC%9E%88%EC%8A%B5%EB%8B%88%EB%8B%A4-%EC%86%8C%EC%85%9C-%EB%AF%B8%EB%94%94%EC%96%B4-sns%EB%A1%9C-activity-7229438902950838274-mHLu',
@@ -33,10 +28,18 @@ export async function getLinkedInFollowers() {
 
     // 팔로워 수가 포함된 요소 대기
     await page.waitForSelector('.public-post-author-card__followers', { timeout: 30000 });
-    await page.waitForTimeout(2000);
+
+    // 실제 팔로워 수가 로드될 때까지 대기
+    await page.waitForFunction(
+      () => {
+        const element = document.querySelector('.public-post-author-card__followers');
+        return element && /\d+,?\d*/.test(element.textContent || '');
+      },
+      { timeout: 30000 }
+    );
 
     // 팔로워 수 텍스트 추출
-    const followerText = await page.locator('.public-post-author-card__followers').textContent();
+    const followerText = await page.$eval('.public-post-author-card__followers', el => el.textContent);
     if (!followerText) {
       throw new Error('팔로워 수를 찾을 수 없습니다.');
     }
