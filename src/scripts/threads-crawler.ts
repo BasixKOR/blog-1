@@ -61,7 +61,11 @@ export async function getThreadsFollowers() {
     }
 
     throw new Error('팔로워 수를 찾을 수 없습니다.');
+  } catch (error) {
+    console.error('Threads 크롤링 중 오류 발생:', error);
+    throw error;
   } finally {
+    if (!browser) return;
     await browser.close();
   }
 }

@@ -75,7 +75,11 @@ export async function getLinkedInFollowers() {
 
     // 쉼표 제거 후 숫자로 변환
     return parseInt(match[1].replace(/,/g, ''));
+  } catch (error) {
+    console.error('Threads 크롤링 중 오류 발생:', error);
+    throw error;
   } finally {
+    if (!browser) return;
     await browser.close();
   }
 }
