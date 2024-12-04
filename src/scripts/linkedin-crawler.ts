@@ -6,21 +6,13 @@ export async function getLinkedInFollowers() {
   if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
     // Vercel 환경
     browser = await puppeteer.launch({
-      args: [
-        ...chromium.args,
-        '--hide-scrollbars',
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-gpu'
-      ],
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: true,
+      args: chromium.args,
+      defaultViewport: {
+        width: 1920,
+        height: 1080,
+      },
+      executablePath: process.env.CHROME_BIN || await chromium.executablePath('/tmp/chromium'),
+      headless: chromium.headless,
     });
   } else {
     // 로컬 환경
