@@ -31,15 +31,6 @@ export default withMDX({
 
     return [...redirectPosts];
   },
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'i.ytimg.com',
-        port: '',
-      },
-    ],
-  },
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals = [...config.externals, 'puppeteer', 'puppeteer-core'];
@@ -64,5 +55,14 @@ export default withMDX({
     };
 
     return config;
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'i.ytimg.com',
+        port: '',
+      },
+    ],
   },
 });
